@@ -92,7 +92,9 @@ struct thread
 
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
-
+    
+    uint64_t mustSleep; /*tiempo que un thread debe permanecer dormido*/
+    
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
@@ -111,6 +113,8 @@ void thread_init (void);
 void thread_start (void);
 
 void thread_tick (void);
+void insert_on_waiting_list(int64_t ticks); //nueva funcion para threads esperando despertar
+void remove_sleepingThread(int64_t ticks); //nueva funcion para remover threads dormidos
 void thread_print_stats (void);
 
 typedef void thread_func (void *aux);
