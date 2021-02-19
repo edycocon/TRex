@@ -159,6 +159,8 @@ void insert_on_waiting_list(int64_t ticks){
   /*mustSleep atributo definido en thread.h*/
 	
   list_push_back(&waiting_list, &thread_actual->elem);
+  // TODO: Investigar como utilizar la funcion list_insert_ordered
+  list_insert_ordered(&waiting_list, &thread_actual->elem, list_insert_ordered(), &aux);
   thread_block();
 
   //Habilitar interrupciones
@@ -515,7 +517,11 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
 
   old_level = intr_disable ();
+
+  // Aqui se envia a la cola de la lista de espera
   list_push_back (&all_list, &t->allelem);
+  list_insert_ordered(  )
+
   intr_set_level (old_level);
 }
 
