@@ -4,6 +4,7 @@
 #include <random.h>
 #include <stdio.h>
 #include <string.h>
+#include <list.h>
 #include "threads/flags.h"
 #include "threads/interrupt.h"
 #include "threads/intr-stubs.h"
@@ -144,6 +145,20 @@ thread_tick (void)
     intr_yield_on_return ();
 }
 
+// This version is to compare the elementss in the waiting list
+bool less_priority(const struct list_elem *a,
+                             const struct list_elem *b,
+                             void *aux ) {
+
+  // Assign the pointer to threads casted as struct thread
+  struct thread *threadA = list_entry(a, struct thread, elem);
+  struct thread *threadB = list_entry(b, struct thread, elem);;
+  
+  // Return the result of comparing priorities descendent
+  return( threadB->priority < threadA->priority );                          
+}
+
+
 /*Funcion para insertar los threads dormidos en la lista de espera*/
 void insert_on_waiting_list(int64_t ticks){
 	//Deshabilitamos interrupciones
@@ -155,12 +170,10 @@ void insert_on_waiting_list(int64_t ticks){
 	
 	struct thread *thread_actual = thread_current ();
   thread_actual->mustSleep = timer_ticks() + ticks;
-  
-  /*mustSleep atributo definido en thread.h*/
-	
-  list_push_back(&waiting_list, &thread_actual->elem);
-  // TODO: Investigar como utilizar la funcion list_insert_ordered
-  list_insert_ordered(&waiting_list, &thread_actual->elem, list_insert_ordered(), &aux);
+  struct thread *aux = NULL;
+
+  list_insert_ordered(&waiting_list, &thread_actual->elem,  less_priority, &aux );
+
   thread_block();
 
   //Habilitar interrupciones
@@ -520,8 +533,7 @@ init_thread (struct thread *t, const char *name, int priority)
 
   // Aqui se envia a la cola de la lista de espera
   list_push_back (&all_list, &t->allelem);
-  list_insert_ordered(  )
-
+  
   intr_set_level (old_level);
 }
 
