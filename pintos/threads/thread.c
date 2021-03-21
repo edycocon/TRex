@@ -165,7 +165,7 @@ void insert_on_waiting_list(int64_t ticks){
 	intr_set_level (old_level);
 }
 
-/*Funcion para remover a lso threads dormidos*/
+/*Funcion para remover a los threads dormidos*/
 void remove_sleepingThread(int64_t ticks){
 	/*Cuando ocurra un timer_interrupt, si el tiempo del thread ha expirado
 	Se mueve de regreso a ready_list, con la funcion thread_unblock*/
@@ -382,10 +382,26 @@ thread_foreach (thread_action_func *func, void *aux)
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
+/*Se puede modificar el parametro new_priority y en vez de eso no recibir
+ningun parametro porque dependera de thread actual y siguiente???? 
+thread_set_priority (int new_priority)*/
 void
-thread_set_priority (int new_priority) 
+thread_set_priority (void) 
 {
-  thread_current ()->priority = new_priority;
+  //verificar cual es el thread que se esta ejecutando y su prioridad
+  prioridadActual = thread_current()->priority;
+  //verificar cual es el thread que sigue en la lista y su prioridad
+  threadSiguiente = waiting_list.list_front();
+  prioridadSiguiente = threadSiguiente->priority;
+  /*Comparar prioridades. Si la prioridad del actual es mayor al que 
+  sigue no cambia nada pero si es al reves obtener la prioridad del 
+  que esta en cola y ponerle esa prioridad al actual*/
+  if (prioridadSiguiente>prioridadActual)
+  {
+    thread_current()->priority = prioridadSiguiente;
+  }
+  
+  //thread_current ()->priority = new_priority;
 }
 
 /* Returns the current thread's priority. */
