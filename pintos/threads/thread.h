@@ -94,12 +94,11 @@ struct thread
     struct list_elem elem;              /* List element. */
     
     uint64_t mustSleep; /*tiempo que un thread debe permanecer dormido*/
-    
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */
 #endif
-
+    int prioridad_original; 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };
@@ -141,5 +140,4 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
-
 #endif /* threads/thread.h */

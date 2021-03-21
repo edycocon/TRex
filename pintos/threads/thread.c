@@ -401,23 +401,12 @@ thread_foreach (thread_action_func *func, void *aux)
 ningun parametro porque dependera de thread actual y siguiente???? 
 thread_set_priority (int new_priority)*/
 void
-thread_set_priority (void) 
+thread_set_priority (int new_priority) 
 {
-  //verificar cual es el thread que se esta ejecutando y su prioridad
-  prioridadActual = thread_current()->priority;
-  //verificar cual es el thread que sigue en la lista y su prioridad
-  threadSiguiente = waiting_list.list_front();
-  prioridadSiguiente = threadSiguiente->priority;
-  /*Comparar prioridades. Si la prioridad del actual es mayor al que 
-  sigue no cambia nada pero si es al reves obtener la prioridad del 
-  que esta en cola y ponerle esa prioridad al actual*/
-  if (prioridadSiguiente>prioridadActual)
-  {
-    thread_current()->priority = prioridadSiguiente;
-  }
+
+  thread_current()->priority = new_priority;
+} 
   
-  //thread_current ()->priority = new_priority;
-}
 
 /* Returns the current thread's priority. */
 int
@@ -666,3 +655,5 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+

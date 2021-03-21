@@ -196,8 +196,24 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  enum intr_level estatus_actual;
+  estatus_actual = intr_disable();
+  struct thread *propietario;  
+  struct thread *solictante = thread_current();
+  propietario = lock->holder;
+
+
+  if (propietario->priority < solictante->priority){
+      //if(propietario->prioridad_original != 0){
+      //  propietario->prioridad_original = propietario->priority; 
+      //}
+      actualizar_prioridad();
+  }
+
   sema_down (&lock->semaphore);
   lock->holder = thread_current ();
+
+  intr_set_level(estatus_actual);
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -229,13 +245,14 @@ void
 lock_release (struct lock *lock) 
 {
   ASSERT (lock != NULL);
-  ASSERT (lock_held_by_current_thread (lock));
-
+  ASSERT (lock_held_by_current_thread (lock));                                  
+  //lock->holder->priority = lock->holder->prioridad_original;
+  //lock->holder->prioridad_original = 0;
   lock->holder = NULL;
   sema_up (&lock->semaphore);
 }
 
-/* Returns true if the current thread holds LOCK, false
+/* Returns true if the current thread holds LOCK, false       
    otherwise.  (Note that testing whether some other thread holds
    a lock would be racy.) */
 bool
@@ -335,4 +352,10 @@ cond_broadcast (struct condition *cond, struct lock *lock)
 
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
+}
+
+void actualizar_prioridad(void){
+
+  //thread->priority = prioridadnueva;
+  
 }
