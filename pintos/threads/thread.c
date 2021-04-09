@@ -75,6 +75,48 @@ static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
 
+
+// This version is to compare the elementss in the waiting list
+bool less_priority(const struct list_elem *a,
+                             const struct list_elem *b,
+                             void *aux ) {
+
+  // Assign the pointer to threads casted as struct thread
+  struct thread *threadA = list_entry(a, struct thread, elem);
+  struct thread *threadB = list_entry(b, struct thread, elem);;
+  
+  // Return the result of comparing priorities descendent
+  return( threadB->priority < threadA->priority );                          
+}
+
+
+void 
+yield_specific_thread(struct thread *thread_){
+  struct thread *cur = thread_;
+  enum intr_level old_level;
+  
+  ASSERT (!intr_context ());
+
+  old_level = intr_disable ();
+  if (cur != idle_thread) 
+    list_push_back (&ready_list, &cur->elem);
+  cur->status = THREAD_READY;
+  schedule ();
+  intr_set_level (old_level);
+}
+
+int max_priority_ready(){
+  return list_entry(list_begin (&ready_list), struct thread,elem )->priority;
+}
+
+
+void add_ready_list(struct thread *thread_){
+  struct thread *aux = NULL;
+  list_remove (&thread_->elem);
+  list_insert_ordered (&ready_list, &thread_->elem, less_priority, &aux);
+}
+
+
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
    general and it is possible in this case only because loader.S
@@ -145,18 +187,7 @@ thread_tick (void)
     intr_yield_on_return ();
 }
 
-// This version is to compare the elementss in the waiting list
-bool less_priority(const struct list_elem *a,
-                             const struct list_elem *b,
-                             void *aux ) {
 
-  // Assign the pointer to threads casted as struct thread
-  struct thread *threadA = list_entry(a, struct thread, elem);
-  struct thread *threadB = list_entry(b, struct thread, elem);;
-  
-  // Return the result of comparing priorities descendent
-  return( threadB->priority < threadA->priority );                          
-}
 
 
 /*Funcion para insertar los threads dormidos en la lista de espera*/
@@ -265,6 +296,11 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
+
+  if(t->priority > thread_current()->priority)
+  {
+    thread_yield();
+  }
 
   return tid;
 }
