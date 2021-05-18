@@ -28,6 +28,14 @@ static bool load (const char *cmdline, void (**eip) (void), void **esp);
 tid_t
 process_execute (const char *file_name) 
 {
+
+  //separando file name por espacios
+  char ejecutable[100];
+  while (*file_name != '\0') {
+    strcat(ejecutable, *file_name) /* Adjuntamos la letra actual */
+    file_name++;      /* Vamos a la siguiente letra */
+  }
+
   char *fn_copy;
   tid_t tid;
 
@@ -39,7 +47,9 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  //tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+  //pasamos solo el nombre del ejecutable no todos los parametros
+  tid = thread_create (ejecutable, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -88,7 +98,11 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  return -1;
+  //bloquea el proceso padre cuando, cambia el semaforo a 0
+  struct semaphore foro[1];
+  sema_init(&foro, 1);
+  sema_down(&thread_current()->foro[0]);
+  //return -1;
 }
 
 /* Free the current process's resources. */
@@ -436,8 +450,8 @@ setup_stack (void **esp)
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-        *esp = PHYS_BASE;
+      if (success)        	
+	*esp = PHYS_BASE - 12;
       else
         palloc_free_page (kpage);
     }
