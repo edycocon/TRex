@@ -31,6 +31,17 @@
 #include <string.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include <list.h>
+
+
+void actualizar_prioridad(struct thread *thread_cambio, int prioritynew){
+  thread_cambio->priority = prioritynew;
+  //printf("\n**** Inicio *****\n");
+  //printf(thread_cambio->priority, "%d");
+  //printf("*********\n");
+  //printf(prioritynew, "%d");
+  //printf("\n***** Fin ****\n");
+}
 
 /* Initializes semaphore SEMA to VALUE.  A semaphore is a
    nonnegative integer along with two atomic operators for
@@ -196,8 +207,56 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
 
+  enum intr_level estatus_actual;
+  estatus_actual = intr_disable();
+  struct thread *propietario;  
+  struct thread *solicitante = thread_current();
+  propietario = lock->holder;
+  
+
+  //solicitante->priority = 32;
+
+  if(propietario !=NULL)
+  { 
+    //printf("entro if antes ***\n");
+    //printf(propietario->name);
+
+    if (propietario->priority < solicitante->priority){
+      if(propietario->prioridad_original == 0){
+        propietario->prioridad_original = propietario->priority; 
+        actualizar_prioridad(propietario, solicitante->priority);
+        /*printf("\n******test\n");
+        printf("%d",max_priority_ready());
+        printf("\n");
+        printf("%d",propietario->priority);
+        printf("\n******test\n");
+        printf("\n******test\n");
+        printf("%d",propietario->status);
+        printf("\n******test\n");*/
+        if (propietario->status == THREAD_READY){
+         
+          add_ready_list(propietario);
+        }
+        else if(propietario->status == THREAD_RUNNING && max_priority_ready() >= propietario->priority){
+          /*printf("\n******test\n");
+          printf("%d",propietario->status);
+          printf("\n******test\n");*/
+          yield_specific_thread(propietario);
+        }
+
+
+      }
+      //printf("entro aqui ***\n");
+      
+    }
+    //printf("\nLock acquire despues ***");
+  }
+
+
   sema_down (&lock->semaphore);
-  lock->holder = thread_current ();
+  lock->holder = thread_current();
+
+  intr_set_level(estatus_actual);
 }
 
 /* Tries to acquires LOCK and returns true if successful or false
@@ -230,12 +289,18 @@ lock_release (struct lock *lock)
 {
   ASSERT (lock != NULL);
   ASSERT (lock_held_by_current_thread (lock));
+  if(lock->holder->prioridad_original != 0){
+    lock->holder->priority = lock->holder->prioridad_original;
+    lock->holder->prioridad_original = 0;
+  }                               
 
   lock->holder = NULL;
+
+
   sema_up (&lock->semaphore);
 }
 
-/* Returns true if the current thread holds LOCK, false
+/* Returns true if the current thread holds LOCK, false       
    otherwise.  (Note that testing whether some other thread holds
    a lock would be racy.) */
 bool
@@ -336,3 +401,5 @@ cond_broadcast (struct condition *cond, struct lock *lock)
   while (!list_empty (&cond->waiters))
     cond_signal (cond, lock);
 }
+
+

@@ -4,7 +4,6 @@
 #include <random.h>
 #include <stdio.h>
 #include <string.h>
-#include <list.h>
 #include "threads/flags.h"
 #include "threads/interrupt.h"
 #include "threads/intr-stubs.h"
@@ -74,48 +73,6 @@ static void *alloc_frame (struct thread *, size_t size);
 static void schedule (void);
 void thread_schedule_tail (struct thread *prev);
 static tid_t allocate_tid (void);
-
-
-// This version is to compare the elementss in the waiting list
-bool less_priority(const struct list_elem *a,
-                             const struct list_elem *b,
-                             void *aux ) {
-
-  // Assign the pointer to threads casted as struct thread
-  struct thread *threadA = list_entry(a, struct thread, elem);
-  struct thread *threadB = list_entry(b, struct thread, elem);;
-  
-  // Return the result of comparing priorities descendent
-  return( threadB->priority < threadA->priority );                          
-}
-
-
-void 
-yield_specific_thread(struct thread *thread_){
-  struct thread *cur = thread_;
-  enum intr_level old_level;
-  
-  ASSERT (!intr_context ());
-
-  old_level = intr_disable ();
-  if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
-  cur->status = THREAD_READY;
-  schedule ();
-  intr_set_level (old_level);
-}
-
-int max_priority_ready(){
-  return list_entry(list_begin (&ready_list), struct thread,elem )->priority;
-}
-
-
-void add_ready_list(struct thread *thread_){
-  struct thread *aux = NULL;
-  list_remove (&thread_->elem);
-  list_insert_ordered (&ready_list, &thread_->elem, less_priority, &aux);
-}
-
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
@@ -187,9 +144,6 @@ thread_tick (void)
     intr_yield_on_return ();
 }
 
-
-
-
 /*Funcion para insertar los threads dormidos en la lista de espera*/
 void insert_on_waiting_list(int64_t ticks){
 	//Deshabilitamos interrupciones
@@ -201,10 +155,10 @@ void insert_on_waiting_list(int64_t ticks){
 	
 	struct thread *thread_actual = thread_current ();
   thread_actual->mustSleep = timer_ticks() + ticks;
-  struct thread *aux = NULL;
-
-  list_insert_ordered(&waiting_list, &thread_actual->elem,  less_priority, &aux );
-
+  
+  /*mustSleep atributo definido en thread.h*/
+	
+  list_push_back(&waiting_list, &thread_actual->elem);
   thread_block();
 
   //Habilitar interrupciones
@@ -296,11 +250,6 @@ thread_create (const char *name, int priority,
 
   /* Add to run queue. */
   thread_unblock (t);
-
-  if(t->priority > thread_current()->priority)
-  {
-    thread_yield();
-  }
 
   return tid;
 }
@@ -437,12 +386,23 @@ thread_foreach (thread_action_func *func, void *aux)
 ningun parametro porque dependera de thread actual y siguiente???? 
 thread_set_priority (int new_priority)*/
 void
-thread_set_priority (int new_priority) 
+thread_set_priority (void) 
 {
-
-  thread_current()->priority = new_priority;
-} 
+  //verificar cual es el thread que se esta ejecutando y su prioridad
+  prioridadActual = thread_current()->priority;
+  //verificar cual es el thread que sigue en la lista y su prioridad
+  threadSiguiente = waiting_list.list_front();
+  prioridadSiguiente = threadSiguiente->priority;
+  /*Comparar prioridades. Si la prioridad del actual es mayor al que 
+  sigue no cambia nada pero si es al reves obtener la prioridad del 
+  que esta en cola y ponerle esa prioridad al actual*/
+  if (prioridadSiguiente>prioridadActual)
+  {
+    thread_current()->priority = prioridadSiguiente;
+  }
   
+  //thread_current ()->priority = new_priority;
+}
 
 /* Returns the current thread's priority. */
 int
@@ -571,10 +531,7 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
 
   old_level = intr_disable ();
-
-  // Aqui se envia a la cola de la lista de espera
   list_push_back (&all_list, &t->allelem);
-  
   intr_set_level (old_level);
 }
 
@@ -691,5 +648,3 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
-
-
